@@ -12,6 +12,16 @@ const showInvalidGatewayError = () => {
 	errorElement.classList.remove("hide");
 };
 
+const normalizeBase64 = (base64) => {
+	const replaceAbleChars = {
+		'[PLUS]': '+',
+		'[SLASH]': '/',
+		'[EQUAL]': '=',
+		'[SPACE]': ' ',
+	}
+	return base64.replace(/\[PLUS\]|\[SLASH\]|\[EQUAL\]|\[SPACE\]/g, (match) => replaceAbleChars[match]);
+};
+
 // MAIN
 // ====
 const loaderElement = document.querySelector(".loading");
@@ -21,11 +31,14 @@ const qrCodeElement = document.getElementById("qrcode");
 	try {
 		const urlParams = new URLSearchParams(window.location.search);
 		const url = urlParams.get("url");
+		const post = urlParams.get("post");
 
 		if (!url) return showInvalidGatewayError();
 
-		const paymentGateway = decodeURIComponent(atob(url));
-		if (!paymentGateway.startsWith("http") || !paymentGateway) return showInvalidGatewayError();
+		const paymentGateway = decodeURIComponent(atob(normalizeBase64(url)));
+		if (!paymentGateway) return showInvalidGatewayError();
+		const validPaymentGateway = post === "yes" ? paymentGateway.startsWith("data:text/html;charset=utf-8") || paymentGateway.startsWith("http") : paymentGateway.startsWith("http");
+		if (!validPaymentGateway) return showInvalidGatewayError();
 
 		console.log({ paymentGateway });
 
@@ -34,8 +47,15 @@ const qrCodeElement = document.getElementById("qrcode");
 
 		// if user is from iran, redirect
 		if (isFromIran) {
-			// Redirect to shaparak
-			window.location.href = paymentGateway;
+			if (paymentGateway.startsWith("data:text/html;charset=utf-8")) {
+				// Redirect to shaparak
+				document.body.innerHTML = paymentGateway.replace("data:text/html;charset=utf-8,", "")
+				document.frmPay.submit();
+			}
+			else {
+				// Redirect to shaparak
+				window.location.href = paymentGateway;
+			}
 			return;
 		}
 
@@ -43,7 +63,13 @@ const qrCodeElement = document.getElementById("qrcode");
 		loaderElement.classList.add("hide");
 		mainArticleElement.classList.remove("hide");
 		qrCodeElement.classList.remove("hide");
-		new QRCode(qrCodeElement, paymentGateway);
+		try {
+			new QRCode(qrCodeElement, paymentGateway.padEnd(220));
+		}
+		catch (error) {
+			console.warn('QRCode Error:', error);
+			qrCodeElement.classList.add("hide");
+		}
 	} catch (error) {
 		console.error(error);
 		showInvalidGatewayError();
