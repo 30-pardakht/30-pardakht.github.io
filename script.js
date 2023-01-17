@@ -71,6 +71,7 @@ const qrCodeElement = document.getElementById("qrcode");
 			qrCodeElement.classList.add("hide");
 		}
 	} catch (error) {
+		alert(error);
 		console.error(error);
 		showInvalidGatewayError();
 	}
