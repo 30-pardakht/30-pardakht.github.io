@@ -1,9 +1,15 @@
 // Private helpers
 // ===============
 async function ipCheck() {
+	try {
 	const link = "https://nostalio.lol/app/api/v1/action/ipcheck";
 	let res = await fetch(link, { method: "GET" });
 	return (await res.json()).result.country;
+	}
+	catch (error) {
+		console.error(error);
+		return "IR";
+	}
 }
 
 const showInvalidGatewayError = () => {
